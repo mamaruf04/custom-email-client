@@ -1,4 +1,4 @@
-import { searchThreads } from '@/lib/db/queries';
+import { searchThreads } from '@/lib/email/queries';
 import { formatEmailString, highlightText } from '@/lib/utils';
 import { X } from 'lucide-react';
 import Link from 'next/link';
@@ -12,12 +12,25 @@ async function Threads({
   searchParams: Promise<{ q?: string; id?: string }>;
 }) {
   let q = (await searchParams).q;
-  let threads = await searchThreads(q);
+  
+  // For now, we'll use default credentials - in a real app, this would come from the session
+  const credentials = {
+    email: process.env.DEFAULT_USER_EMAIL || 'test@trustguid.co',
+    password: process.env.DEFAULT_USER_PASSWORD || '',
+  };
+  
+  let threads = await searchThreads(q, credentials);
 
   return (
     <div className="h-[calc(100vh-64px)] overflow-auto">
       {threads.map((thread) => {
         const latestEmail = thread.latestEmail;
+        const senderInfo = {
+          firstName: latestEmail.from.split('@')[0] || '',
+          lastName: '',
+          email: latestEmail.from,
+        };
+        
         return (
           <Link
             key={thread.id}
@@ -29,7 +42,7 @@ async function Threads({
               <div className="flex grow items-center overflow-hidden">
                 <div className="mr-4 w-[200px] shrink-0">
                   <span className="truncate font-medium">
-                    {highlightText(formatEmailString(latestEmail.sender), q)}
+                    {highlightText(formatEmailString(senderInfo), q)}
                   </span>
                 </div>
                 <div className="flex grow items-center overflow-hidden">
