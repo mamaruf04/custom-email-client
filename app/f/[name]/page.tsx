@@ -1,5 +1,6 @@
 import { ThreadHeader, ThreadList } from '@/app/components/thread-list';
-import { getThreadsForFolder } from '@/lib/db/queries';
+import { getThreadsForFolder } from '@/lib/email/queries';
+import { useEmail } from '@/app/contexts/email-context';
 import { Suspense } from 'react';
 
 export function generateStaticParams() {
@@ -48,7 +49,14 @@ async function Threads({
 }) {
   let { name } = await params;
   let { q } = await searchParams;
-  let threads = await getThreadsForFolder(name);
+  
+  // For now, we'll use default credentials - in a real app, this would come from the session
+  const credentials = {
+    email: process.env.DEFAULT_USER_EMAIL || 'test@trustguid.co',
+    password: process.env.DEFAULT_USER_PASSWORD || '',
+  };
+  
+  let threads = await getThreadsForFolder(name, credentials);
 
   return <ThreadList folderName={name} threads={threads} searchQuery={q} />;
 }
