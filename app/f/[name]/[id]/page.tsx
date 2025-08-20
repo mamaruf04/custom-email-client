@@ -1,6 +1,6 @@
 import { LeftSidebar } from '@/app/components/left-sidebar';
 import { ThreadActions } from '@/app/components/thread-actions';
-import { getEmailsForThread } from '@/lib/db/queries';
+import { getEmailsForThread } from '@/lib/email/queries';
 import { notFound } from 'next/navigation';
 
 export default async function EmailPage({
@@ -8,8 +8,15 @@ export default async function EmailPage({
 }: {
   params: Promise<{ name: string; id: string }>;
 }) {
-  let id = (await params).id;
-  let thread = await getEmailsForThread(id);
+  let { name, id } = await params;
+  
+  // For now, we'll use default credentials - in a real app, this would come from the session
+  const credentials = {
+    email: process.env.DEFAULT_USER_EMAIL || 'test@trustguid.co',
+    password: process.env.DEFAULT_USER_PASSWORD || '',
+  };
+  
+  let thread = await getEmailsForThread(id, credentials);
 
   if (!thread || thread.emails.length === 0) {
     notFound();
@@ -28,7 +35,11 @@ export default async function EmailPage({
               <button className="mr-2 cursor-pointer text-sm font-medium text-gray-700">
                 Share
               </button>
-              <ThreadActions threadId={thread.id} />
+              <ThreadActions 
+                threadId={thread.id} 
+                folderName={name}
+                uid={thread.emails[0]?.uid}
+              />
             </div>
           </div>
           <div className="space-y-6">
@@ -36,13 +47,11 @@ export default async function EmailPage({
               <div key={email.id} className="rounded-lg bg-gray-50 px-6 py-4">
                 <div className="mb-2 flex flex-col items-start justify-between sm:flex-row sm:items-center">
                   <div className="font-semibold">
-                    {email.sender.firstName} {email.sender.lastName} to{' '}
-                    {email.recipientId === thread.emails[0].sender.id
-                      ? 'Me'
-                      : 'All'}
+                    {email.from} to{' '}
+                    {email.to.join(', ')}
                   </div>
                   <div className="text-sm text-gray-500">
-                    {new Date(email.sentDate!).toLocaleString()}
+                    {new Date(email.date).toLocaleString()}
                   </div>
                 </div>
                 <div className="whitespace-pre-wrap">{email.body}</div>

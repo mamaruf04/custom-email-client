@@ -6,52 +6,83 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { moveThreadToDone, moveThreadToTrash } from '@/lib/db/actions';
-import { Archive, Check, Clock } from 'lucide-react';
+import { moveEmailAction, deleteEmailAction } from '@/lib/email/actions';
+import { useEmail } from '@/app/contexts/email-context';
+import { Archive, Check, Clock, Trash2 } from 'lucide-react';
 import { useActionState } from 'react';
 
 interface ThreadActionsProps {
-  threadId: number;
+  threadId: string;
+  folderName?: string;
+  uid?: number;
 }
 
-export function ThreadActions({ threadId }: ThreadActionsProps) {
+export function ThreadActions({ threadId, folderName = 'INBOX', uid }: ThreadActionsProps) {
+  const { credentials } = useEmail();
+  
   const initialState = {
     error: null,
     success: false,
   };
 
-  const [doneState, doneAction, donePending] = useActionState(
-    moveThreadToDone,
+  const [moveState, moveAction, movePending] = useActionState(
+    moveEmailAction,
     initialState,
   );
-  const [trashState, trashAction, trashPending] = useActionState(
-    moveThreadToTrash,
+  const [deleteState, deleteAction, deletePending] = useActionState(
+    deleteEmailAction,
     initialState,
   );
 
-  const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === 'production';
+  const handleMoveAction = async (formData: FormData) => {
+    if (!credentials || !uid) {
+      return;
+    }
+
+    formData.append('userEmail', credentials.email);
+    formData.append('userPassword', credentials.password);
+    formData.append('folder', folderName);
+    formData.append('uid', uid.toString());
+    formData.append('targetFolder', 'Archive');
+
+    await moveAction(formData);
+  };
+
+  const handleDeleteAction = async (formData: FormData) => {
+    if (!credentials || !uid) {
+      return;
+    }
+
+    formData.append('userEmail', credentials.email);
+    formData.append('userPassword', credentials.password);
+    formData.append('folder', folderName);
+    formData.append('uid', uid.toString());
+
+    await deleteAction(formData);
+  };
+
+  if (!credentials) {
+    return null;
+  }
 
   return (
     <TooltipProvider>
       <div className="flex items-center space-x-1">
         <Tooltip>
           <TooltipTrigger asChild>
-            <form action={doneAction}>
-              <input type="hidden" name="threadId" value={threadId} />
+            <form action={handleMoveAction}>
               <button
                 type="submit"
-                disabled={donePending || isProduction}
+                disabled={movePending}
                 className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Check size={14} className="text-gray-600" />
               </button>
             </form>
           </TooltipTrigger>
-          {isProduction && (
-            <TooltipContent>
-              <p>Marking as done is disabled in production</p>
-            </TooltipContent>
-          )}
+          <TooltipContent>
+            <p>Archive email</p>
+          </TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -68,22 +99,19 @@ export function ThreadActions({ threadId }: ThreadActionsProps) {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <form action={trashAction}>
-              <input type="hidden" name="threadId" value={threadId} />
+            <form action={handleDeleteAction}>
               <button
                 type="submit"
-                disabled={trashPending || isProduction}
+                disabled={deletePending}
                 className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Archive size={14} className="text-gray-600" />
+                <Trash2 size={14} className="text-gray-600" />
               </button>
             </form>
           </TooltipTrigger>
-          {isProduction && (
-            <TooltipContent>
-              <p>Moving to trash is disabled in production</p>
-            </TooltipContent>
-          )}
+          <TooltipContent>
+            <p>Delete email</p>
+          </TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>

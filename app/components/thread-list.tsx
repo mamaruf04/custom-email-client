@@ -1,23 +1,18 @@
 'use client';
 
 import { ThreadActions } from '@/app/components/thread-actions';
-import { emails, users } from '@/lib/db/schema';
 import { formatEmailString } from '@/lib/utils';
 import { PenSquare, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { NavMenu } from './menu';
-
-type Email = Omit<typeof emails.$inferSelect, 'threadId'> & {
-  sender: Pick<User, 'id' | 'firstName' | 'lastName' | 'email'>;
-};
-type User = typeof users.$inferSelect;
+import { EmailMessage } from '@/lib/email/config';
 
 type ThreadWithEmails = {
-  id: number;
-  subject: string | null;
-  lastActivityDate: Date | null;
-  emails: Email[];
+  id: string;
+  subject: string;
+  lastActivityDate: Date;
+  emails: EmailMessage[];
 };
 
 interface ThreadListProps {
@@ -61,7 +56,7 @@ export function ThreadHeader({
 }
 
 export function ThreadList({ folderName, threads }: ThreadListProps) {
-  const [hoveredThread, setHoveredThread] = useState<number | null>(null);
+  const [hoveredThread, setHoveredThread] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -77,7 +72,7 @@ export function ThreadList({ folderName, threads }: ThreadListProps) {
     };
   }, []);
 
-  const handleMouseEnter = (threadId: number) => {
+  const handleMouseEnter = (threadId: string) => {
     if (!isMobile) {
       setHoveredThread(threadId);
     }
@@ -95,6 +90,11 @@ export function ThreadList({ folderName, threads }: ThreadListProps) {
       <div className="h-[calc(100vh-64px)] overflow-auto">
         {threads.map((thread) => {
           const latestEmail = thread.emails[0];
+          const senderInfo = {
+            firstName: latestEmail.from.split('@')[0] || '',
+            lastName: '',
+            email: latestEmail.from,
+          };
 
           return (
             <Link
@@ -110,7 +110,7 @@ export function ThreadList({ folderName, threads }: ThreadListProps) {
                 <div className="flex grow items-center overflow-hidden p-4">
                   <div className="mr-4 w-[200px] shrink-0">
                     <span className="truncate font-medium">
-                      {formatEmailString(latestEmail.sender)}
+                      {formatEmailString(senderInfo)}
                     </span>
                   </div>
                   <div className="flex grow items-center overflow-hidden">
@@ -124,10 +124,14 @@ export function ThreadList({ folderName, threads }: ThreadListProps) {
                 </div>
                 <div className="flex w-40 shrink-0 items-center justify-end p-4">
                   {!isMobile && hoveredThread === thread.id ? (
-                    <ThreadActions threadId={thread.id} />
+                    <ThreadActions 
+                      threadId={thread.id} 
+                      folderName={folderName}
+                      uid={latestEmail.uid}
+                    />
                   ) : (
                     <span className="text-sm text-gray-500">
-                      {new Date(thread.lastActivityDate!).toLocaleDateString()}
+                      {new Date(thread.lastActivityDate).toLocaleDateString()}
                     </span>
                   )}
                 </div>
