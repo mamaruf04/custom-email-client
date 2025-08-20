@@ -34,7 +34,7 @@ function LogoutButton({ onLogout }: { onLogout: () => void }) {
   return (
     <button
       onClick={onLogout}
-      className="fixed top-4 right-4 z-50 rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+      className="fixed bottom-4 right-4 z-50 rounded-md bg-red-600 px-3 py-1 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
     >
       Logout
     </button>

@@ -3,9 +3,9 @@ import { Inter } from 'next/font/google';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import { EmailApp } from './components/email-app';
-import { WelcomeToast } from './components/welcome-toast';
 import { EmailProvider } from './contexts/email-context';
 import './globals.css';
+import { RightSidebar } from './components/right-sidebar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -31,7 +31,6 @@ export default function RootLayout({
           </EmailApp>
         </EmailProvider>
         <Toaster closeButton />
-        <WelcomeToast />
       </body>
     </html>
   );
