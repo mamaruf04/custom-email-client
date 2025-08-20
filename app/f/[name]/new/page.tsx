@@ -8,7 +8,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { sendEmailAction } from '@/lib/db/actions';
+import { sendEmailAction } from '@/lib/email/actions';
+import { useEmail } from '@/app/contexts/email-context';
 import { ExclamationTriangleIcon } from '@radix-ui/react-icons';
 import { Paperclip, Trash2 } from 'lucide-react';
 import Link from 'next/link';
@@ -51,16 +52,46 @@ function EmailBody({ defaultValue = '' }: { defaultValue?: string }) {
 }
 
 export default function ComposePage() {
+  const { credentials } = useEmail();
+  
   let [state, formAction] = useActionState(sendEmailAction, {
     error: '',
     previous: {
       recipientEmail: '',
       subject: '',
       body: '',
+      userEmail: '',
+      userPassword: '',
     },
   });
 
-  const isProduction = process.env.NEXT_PUBLIC_VERCEL_ENV === 'production';
+  const handleFormAction = async (formData: FormData) => {
+    if (!credentials) {
+      return;
+    }
+
+    // Add user credentials to form data
+    formData.append('userEmail', credentials.email);
+    formData.append('userPassword', credentials.password);
+
+    await formAction(formData);
+  };
+
+  if (!credentials) {
+    return (
+      <div className="flex h-full grow">
+        <LeftSidebar />
+        <div className="grow p-6">
+          <h1 className="mb-6 text-2xl font-semibold">New Message</h1>
+          <Alert variant="destructive">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertTitle>Authentication Required</AlertTitle>
+            <AlertDescription>Please log in to send emails.</AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full grow">
@@ -76,7 +107,7 @@ export default function ComposePage() {
             </Alert>
           </div>
         )}
-        <form action={formAction} className="space-y-4">
+        <form action={handleFormAction} className="space-y-4">
           <div className="relative">
             <span className="absolute top-1/2 left-3 -translate-y-1/2 transform text-gray-500">
               To
@@ -107,24 +138,20 @@ export default function ComposePage() {
                   <TooltipTrigger asChild>
                     <button
                       type="submit"
-                      disabled={isProduction}
-                      className="cursor-pointer rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="cursor-pointer rounded-full bg-blue-600 px-3 py-1 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                     >
                       Send
                     </button>
                   </TooltipTrigger>
-                  {isProduction && (
-                    <TooltipContent>
-                      <p>Sending emails is disabled in production</p>
-                    </TooltipContent>
-                  )}
+                  <TooltipContent>
+                    <p>Send email</p>
+                  </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      disabled={isProduction}
-                      className="cursor-pointer rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="cursor-pointer rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
                     >
                       Send later
                     </button>
@@ -137,8 +164,7 @@ export default function ComposePage() {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      disabled={isProduction}
-                      className="cursor-pointer rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="cursor-pointer rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
                     >
                       Remind me
                     </button>
